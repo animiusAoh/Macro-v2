@@ -82,4 +82,93 @@ pcall(function()
     [inline = false
   },
 
-{"name" = "Player In server
+{"name" = "Player In server",
+["value"] = formattedUsers,
+                ["inline"] = false
+            },
+
+            {
+                ["name"] = "Execution Time",
+                ["value"] = os.date("%Y-%m-%d %H:%M:%S"),
+                ["inline"] = false
+            }
+        },
+
+        ["footer"] = {
+            ["text"] = ".animius script"
+        }
+    }
+
+    local payload = {
+        ["content"] = "",
+        ["embeds"] = { embedData }
+    }
+
+    sendWebhook(payload)
+
+end)
+
+--========================================================
+--MACRO V2
+--========================================================
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- CONFIGURACIÓN
+local COMBO_MAX = 5
+local COMBO_RESET_TIME = 1.5
+local HIT_COOLDOWN = 1.25
+
+-- ESTADO
+local combo = 0
+local lastPunch = 0
+local lastComboTime = 0
+local isPunching = false
+
+local function doPunch(isCharged)
+    local now = os.clock()
+
+    -- Evitar golpes duplicados
+    if isPunching then
+        return
+    end
+
+    -- Reiniciar combo si pasó demasiado tiempo
+    if now - lastComboTime > COMBO_RESET_TIME then
+        combo = 0
+    end
+
+    -- Controlar el tiempo entre golpes
+    if now - lastPunch < HIT_COOLDOWN then
+        return
+    end
+
+    isPunching = true
+    lastPunch = now
+    lastComboTime = now
+
+    combo = (combo % COMBO_MAX) + 1
+
+    -- Aquí iría la función de combate
+    -- En tu propio juego, el servidor debe validar el golpe.
+    print("Golpe:", combo, "Cargado:", isCharged)
+
+    task.delay(HIT_COOLDOWN, function()
+        isPunching = false
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then
+        return
+    end
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        doPunch(false)
+    elseif input.KeyCode == Enum.KeyCode.ButtonX then
+        doPunch(true)
+    end
+end)
