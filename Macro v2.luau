@@ -112,63 +112,75 @@ end)
 --MACRO V2
 --========================================================
 
-local Players = game:GetService("Players")
+ocal Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+local events = ReplicatedStorage:WaitForChild("Events")
+local punchRemote = events:WaitForChild("Punch")
 
--- CONFIGURACIÓN
-local COMBO_MAX = 5
-local COMBO_RESET_TIME = 1.5
-local HIT_COOLDOWN = 1.25
+-- Delays un poco más lentos y controlados
+local hitDelays = {
+	3.15,  -- combo 1
+	3.99,  -- combo 2
+	3.20,  -- combo 3
+	4.00,  -- combo 4
+	4.15   -- combo 5
+}
 
--- ESTADO
-local combo = 0
 local lastPunch = 0
+local combo = 0
 local lastComboTime = 0
 local isPunching = false
 
 local function doPunch(isCharged)
-    local now = os.clock()
-
-    -- Evitar golpes duplicados
-    if isPunching then
-        return
-    end
-
-    -- Reiniciar combo si pasó demasiado tiempo
-    if now - lastComboTime > COMBO_RESET_TIME then
-        combo = 0
-    end
-
-    -- Controlar el tiempo entre golpes
-    if now - lastPunch < HIT_COOLDOWN then
-        return
-    end
-
-    isPunching = true
-    lastPunch = now
-    lastComboTime = now
-
-    combo = (combo % COMBO_MAX) + 1
-
-    -- Aquí iría la función de combate
-    -- En tu propio juego, el servidor debe validar el golpe.
-    print("Golpe:", combo, "Cargado:", isCharged)
-
-    task.delay(HIT_COOLDOWN, function()
-        isPunching = false
-    end)
+	local now = tick()
+	
+	if isPunching then return end
+	
+	if now - lastComboTime > 1.5 then
+		combo = 0
+	end
+	
+	local currentDelay = hitDelays[combo + 1] or 0.22
+	
+	if now - lastPunch < currentDelay then
+		return
+	end
+	
+	isPunching = true
+	lastPunch = now
+	lastComboTime = now
+	
+	combo = combo + 1
+	if combo > 5 then
+		combo = 1
+	end
+	
+	local v4 = isCharged and 0.35 or 0
+	local v5 = hitDelays[combo]
+	
+	punchRemote:FireServer(v4, v5, combo)
+	
+	task.delay(currentDelay * 0.9, function()
+		isPunching = false
+	end)
 end
 
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then
-        return
-    end
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        doPunch(false)
-    elseif input.KeyCode == Enum.KeyCode.ButtonX then
-        doPunch(true)
-    end
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		doPunch(false)
+	end
 end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.Gamepad1 and input.KeyCode == Enum.KeyCode.ButtonX then
+		doPunch(true)
+	end
+end)
+
+print("Working)
