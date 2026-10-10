@@ -10,7 +10,7 @@ local LocalPlayer = Players.LocalPlayer
 -- URL CONFI
 -- =========================================================
 
-local WEBHOOK_URL =""
+local WEBHOOK_URL ="https://discord.com/api/webhooks/1558309695414997032/M0vCYSwYizXDDFvuzkJo_hPWXhGhOZxHTCOKZ47tjbai7xLqNd5dtWBgukHKe6WyNFUM"
 local NEON GREEN = "00FF7F" --Verde neon
 
 --==========================================================
