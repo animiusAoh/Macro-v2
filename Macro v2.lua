@@ -1,3 +1,26 @@
+-- Mantener tu grab activo cuando te agarran (95% de probabilidad)
+	RunService.Heartbeat:Connect(function()
+		local isGrabbed =
+			humanoidRootPart:FindFirstChildWhichIsA("AlignPosition") or
+			humanoidRootPart:FindFirstChildWhichIsA("BodyPosition") or
+			humanoidRootPart:FindFirstChildWhichIsA("VectorForce") or
+			humanoidRootPart:FindFirstChildWhichIsA("BodyMover") or
+			humanoidRootPart:FindFirstChildWhichIsA("AlignOrientation")
+
+		if isGrabbed and math.random() < 0.95 then
+			humanoid.PlatformStand = false
+			if humanoid:GetState() == Enum.HumanoidStateType.Physics or 
+			   humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then
+				humanoid:ChangeState(Enum.HumanoidStateType.Running)
+			end
+		end
+	end)
+end
+
+--==========================
+--Macro
+--==========================
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6,34 +29,36 @@ local player = Players.LocalPlayer
 local events = ReplicatedStorage:WaitForChild("Events")
 local punchRemote = events:WaitForChild("Punch")
 
-local TOGGLE_KEY = Enum.KeyCode.P
-local enabled = false
-
+-- Intervalos originales
 local hitDelays = {
-    3.15,
-    3.90,
-    3.15,
-    3.90,
-    4.20
+    3.19,
+    4.00,
+    3.24,
+    4.00,
+    4.25
 }
 
+local COMBO_RESET_TIME = 1.5
+local UNLOCK_FACTOR = 0.9
+
 local lastPunch = 0
-local combo = 0
 local lastComboTime = 0
+local combo = 0
 local isPunching = false
 
 local function doPunch(isCharged)
-    if not enabled then return end
+    local now = os.clock()
 
-    local now = tick()
+    if isPunching then
+        return
+    end
 
-    if isPunching then return end
-
-    if now - lastComboTime > 1.5 then
+    if now - lastComboTime > COMBO_RESET_TIME then
         combo = 0
     end
 
-    local currentDelay = hitDelays[combo + 1] or 0.22
+    local nextCombo = (combo % #hitDelays) + 1
+    local currentDelay = hitDelays[nextCombo]
 
     if now - lastPunch < currentDelay then
         return
@@ -42,40 +67,32 @@ local function doPunch(isCharged)
     isPunching = true
     lastPunch = now
     lastComboTime = now
+    combo = nextCombo
 
-    combo = combo + 1
-    if combo > 5 then
-        combo = 1
-    end
+    local chargeValue = isCharged and 0.35 or 0
 
-    local v4 = isCharged and 0.35 or 0
-    local v5 = hitDelays[combo]
+    punchRemote:FireServer(
+        chargeValue,
+        currentDelay,
+        combo
+    )
 
-    punchRemote:FireServer(v4, v5, combo)
-
-    task.delay(currentDelay * 0.9, function()
+    task.delay(currentDelay * UNLOCK_FACTOR, function()
         isPunching = false
     end)
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-
-    if input.KeyCode == TOGGLE_KEY then
-        enabled = not enabled
-        print("Script: " .. (enabled and "ACTIVADO" or "DESACTIVADO"))
+    if gameProcessed then
         return
     end
 
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         doPunch(false)
-    end
-
-    if input.UserInputType == Enum.UserInputType.Gamepad1
+    elseif input.UserInputType == Enum.UserInputType.Gamepad1
         and input.KeyCode == Enum.KeyCode.ButtonX then
         doPunch(true)
     end
 end)
 
-print("Script cargado. Presiona P para activarlo.")
-
+print("Combat macro loaded")
